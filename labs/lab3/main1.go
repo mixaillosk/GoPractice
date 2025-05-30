@@ -20,11 +20,11 @@ type Dish struct {
 }
 
 var dishes = []Dish{
-	{"Суп", 100.0, 5, 8},
-	{"Стейк", 250.0, 10, 15},
-	{"Паста", 150.0, 6, 9},
-	{"Салат", 80.0, 3, 5},
-	{"Десерт", 90.0, 4, 6},
+	{"Суп", 100.0, 5, 30},
+	{"Стейк", 250.0, 10, 25},
+	{"Паста", 150.0, 6, 20},
+	{"Салат", 80.0, 3, 15},
+	{"Десерт", 90.0, 4, 13},
 }
 
 type Order struct {
@@ -129,8 +129,8 @@ func simulateCustomers(chefChan chan<- Order, numTables int, numWaiters int, sto
 				continue
 			}
 
-			maxPeople := numTables
-			numPeople := rand.Intn(maxPeople + 1)
+			maxPeople := 5 * numTables
+			numPeople := rand.Intn(maxPeople+1) + 1
 
 			// fmt.Printf("[%s] Пришло %d новых клиентов (%d столов)\n", formatTime(virtualNow), numPeople, numTables)
 			fmt.Printf("[%s] Пришло %d новых клиентов\n", formatTime(virtualNow), numPeople)
@@ -138,7 +138,7 @@ func simulateCustomers(chefChan chan<- Order, numTables int, numWaiters int, sto
 			for i := 0; i < numPeople; i++ {
 				tableID := rand.Intn(numTables) + 1
 
-				numDishes := 1 + rand.Intn(3)
+				numDishes := 1 //+ rand.Intn(3)
 				var selectedDishes []Dish
 				var totalProfit float64
 
@@ -170,9 +170,9 @@ func chef(chefID int, r *Restaurant, chefChan <-chan Order, wg *sync.WaitGroup, 
 	virtualNow := virtualStart
 
 	for order := range chefChan {
-		if virtualNow.After(closeTime) {
-			fmt.Printf("[%s] Повар пропустил заказ от стола %d — уже время закрытия\n",
-				formatTime(virtualNow), order.TableID)
+		if virtualNow.After(closeTime.Add(-30 * time.Minute)) {
+			fmt.Printf("[%s] Повар %d пропустил заказ от стола %d — скоро время закрытия\n",
+				formatTime(virtualNow), chefID, order.TableID)
 			continue
 		}
 
@@ -198,7 +198,7 @@ func chef(chefID int, r *Restaurant, chefChan <-chan Order, wg *sync.WaitGroup, 
 
 		time.Sleep(realCookDuration)
 
-		order.EndTime = order.StartTime.Add(virtualCookDuration)
+		order.EndTime = virtualNow.Add(virtualCookDuration)
 
 		r.recordOrderCompletion(order, closeTime)
 
